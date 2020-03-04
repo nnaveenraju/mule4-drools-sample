@@ -1,0 +1,14 @@
+package rules.job1
+
+import com.drools.example.Job;
+
+dialect "mvel"
+
+rule "From Modus Mobile App"
+when
+j : Job( jobType.equalsIgnoreCase("Food Supply") , jobStatus.equalsIgnoreCase("New"), jn : jobName )
+then
+j.setJobOwner( "Farmer's Food Supply Pvt Ltd." );
+j.setJobStatus( "Assigned 1" );
+update( j );
+end

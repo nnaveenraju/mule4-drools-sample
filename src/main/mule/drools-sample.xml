@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:java="http://www.mulesoft.org/schema/mule/java"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd">
+	<http:listener-config name="HTTP_Listener_config"
+		doc:name="HTTP Listener config"
+		doc:id="d86ef54d-47f4-4e23-8ba7-1bf362adcc31">
+		<http:listener-connection host="0.0.0.0"
+			port="8081" />
+	</http:listener-config>
+	<flow name="drools-exampleFlow"
+		doc:id="c82649e0-df20-43fe-9685-83e640789e48">
+		<http:listener doc:name="Listener"
+			doc:id="c820b5a3-4f8c-4996-818c-bd693ae8c40d"
+			config-ref="HTTP_Listener_config" path="/drools-example"
+			allowedMethods="POST" outputMimeType="application/json" />
+		<ee:transform doc:name="Transform Message"
+			doc:id="d7d5e0d8-0fce-456c-bff5-f2d19f876dfd">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+jobCost: payload.jobCost as Number,
+jobDateTime: payload.jobDateTime default null,
+jobLocation: payload.jobLocation,
+jobName: payload.jobName,
+jobOwner: payload.jobOwner,
+jobStatus: payload.jobStatus,
+jobType: payload.jobType
+} as Object {
+class : "com.drools.example.Job"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable value='#[payload as Object {  class : "com.drools.example.Job" }]' doc:name="Set Variable"
+			doc:id="47034eda-ce3d-4d30-8fd6-a3c4f2cd9c46" variableName="flowJob"
+			mimeType="application/java" />
+		<java:invoke-static doc:name="Invoke static"
+			doc:id="94e442e5-9a5a-49a1-809e-25099d9f517f"
+			class="com.drools.example.RulesEngine" method="executeJobRules(Job)">
+			<java:args><![CDATA[#[{
+arg0 : vars.flowJob
+}]]]></java:args>
+		</java:invoke-static>
+		<ee:transform doc:name="Transform Message"
+			doc:id="3ed26da0-a742-4831-a777-e8fd8a324831">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+jobName: vars.flowJob.jobName as String,
+jobType: vars.flowJob.jobType as String,
+jobLocation: vars.flowJob.jobLocation as String,
+jobDateTime: vars.flowJob.jobDateTime as String default null,
+jobCost: vars.flowJob.jobCost as String,
+jobOwner: vars.flowJob.jobOwner as String,
+jobStatus: vars.flowJob.jobStatus as String
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
